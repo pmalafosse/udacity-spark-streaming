@@ -50,11 +50,14 @@ def run_spark_job(spark):
         .select("DF.*")
 
     # TODO select original_crime_type_name and disposition
-    distinct_table = service_table.select("original_crime_type_name", "disposition")
+    distinct_table = service_table.select("original_crime_type_name", "disposition", "call_date_time")
 
     # count the number of original crime type
-    agg_df = distinct_table.groupBy("disposition", "original_crime_type_name").count()
-
+    agg_df = (distinct_table
+        .withWatermark("call_date_time", "10 minutes") \
+        .groupBy(psf.window("call_date_time", "1 hours"), "disposition", "original_crime_type_name")
+        .count()
+    )
     # TODO Q1. Submit a screen shot of a batch ingestion of the aggregation
     # TODO write output stream
 #     query = (agg_df
